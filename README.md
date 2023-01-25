@@ -1,2 +1,2 @@
-# CursoMockito
-Este repositorio tiene como objetivo alojar las pruebas realizadas en el curso de Mockito.
+# CursoJunitMockito
+Este proyecto tiene como objetivo alojar las pruebas del curso de Junit, Mockito en Spring Boot.
