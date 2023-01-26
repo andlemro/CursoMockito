@@ -20,7 +20,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.exceptions.base.MockitoException;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 import static org.mockito.Mockito.*;
 
@@ -99,11 +101,15 @@ public class ExamenServiceImpTest {
 	
 	@Test
 	void testNoExisteExamenVerify() {
+	    // 1. Given
 		// Los metodos when son propios de Mockito y permiten simular pruebas.
 		when(repository.findAll()).thenReturn(Collections.emptyList());
 		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.preguntas);
 		
+		// 2. When
 		Examen examen = service.findExamenPorNombreConPreguntas("Matematicas");
+		
+		// 3. Then
 		assertNull(examen);
 		verify(repository).findAll();
 		verify(preguntaRepository).findPreguntasPorExamenId(5L);
@@ -111,11 +117,38 @@ public class ExamenServiceImpTest {
 	
 	@Test
 	void testGuardarExamen() {
+		
+		/**
+		 * BDD = Desarrollo impulsado por el comportamiento.
+		 * 
+		 */
+		
+		// 1. Given = Dado
 		Examen newExamen = Datos.EXAMEN;
 		newExamen.setPreguntas(Datos.preguntas);
 		
-		when(repository.guardar(any(Examen.class))).thenReturn(Datos.EXAMEN);
+		/**
+		 * En la respuesta (.then) implementamos una respuesta (Answer) de tipo Examen
+		 * para poder especificar la secuencia con la que queremos que arranque nuestro
+		 * ID incremental, esto simulando con mockito. 
+		 **/
+		when(repository.guardar(any(Examen.class))).then(new Answer<Examen>() {
+			
+			// Iniciara apartir de 8 ya que hay examenes creados en otras clases.
+			Long secuencia = 8L;
+			
+			@Override
+			public Examen answer(InvocationOnMock invocation) throws Throwable {
+				Examen examen = invocation.getArgument(0);
+				examen.setId(secuencia++);
+				return examen;
+			}
+		});
+		
+		// 2. When = Cuando
 		Examen examen = service.guardar(newExamen);
+		
+		// 3. Then = Entonces
 		assertNotNull(examen.getId());
 		assertEquals(8L, examen.getId());
 		assertEquals("Fisica", examen.getNombre());
@@ -125,4 +158,35 @@ public class ExamenServiceImpTest {
 	}
 	
 	
+	@Test
+	void testManejoException() {
+		
+		// Given
+		when(repository.findAll()).thenReturn(Datos.EXAMENES_ID_NULL);
+		when(preguntaRepository.findPreguntasPorExamenId(isNull())).thenThrow(IllegalArgumentException.class);
+		
+		// When
+		Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+			service.findExamenPorNombreConPreguntas("Matematicas");
+		});
+		
+		// Then
+		assertEquals(IllegalArgumentException.class, exception.getClass());
+		verify(repository).findAll();
+		verify(preguntaRepository).findPreguntasPorExamenId(isNull());
+	}
+	
+	@Test
+	void testArgumentMatchers() {
+		when(repository.findAll()).thenReturn(Datos.EXAMENES);
+		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.preguntas);
+		
+		service.findExamenPorNombreConPreguntas("Matematicas");
+		
+		verify(repository).findAll();
+//		verify(preguntaRepository).findPreguntasPorExamenId(argThat(arg -> arg != null && arg.equals(5L)));
+		verify(preguntaRepository).findPreguntasPorExamenId(argThat(arg -> arg != null && arg >= 5L));
+//		verify(preguntaRepository).findPreguntasPorExamenId(eq(5L));
+		
+	}
 }
