@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.aopalliance.intercept.Invocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +17,9 @@ import org.lemos.app_mockito.ejemplos.repositories.PreguntaRepository;
 import org.lemos.app_mockito.ejemplos.servicios.Datos;
 import org.lemos.app_mockito.ejemplos.servicios.ExamenService;
 import org.lemos.app_mockito.ejemplos.servicios.ExamenServiceImp;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -38,6 +42,9 @@ public class ExamenServiceImpTest {
 	
 	@InjectMocks
 	private ExamenServiceImp service;
+	
+	@Captor
+	ArgumentCaptor<Long> captor;
 	
 	@BeforeEach
 	void setUp() {
@@ -77,7 +84,7 @@ public class ExamenServiceImpTest {
 	void testPreguntasExamen() {
 		// Los metodos when son propios de Mockito y permiten simular pruebas.
 		when(repository.findAll()).thenReturn(Datos.EXAMENES);
-		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.preguntas);
+		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
 		
 		Examen examen = service.findExamenPorNombreConPreguntas("Matematicas");
 		assertEquals(5, examen.getPreguntas().size());
@@ -89,7 +96,7 @@ public class ExamenServiceImpTest {
 	void testPreguntasExamenVerify() {
 		// Los metodos when son propios de Mockito y permiten simular pruebas.
 		when(repository.findAll()).thenReturn(Datos.EXAMENES);
-		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.preguntas);
+		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
 		
 		Examen examen = service.findExamenPorNombreConPreguntas("Matematicas");
 		assertEquals(5, examen.getPreguntas().size());
@@ -104,7 +111,7 @@ public class ExamenServiceImpTest {
 	    // 1. Given
 		// Los metodos when son propios de Mockito y permiten simular pruebas.
 		when(repository.findAll()).thenReturn(Collections.emptyList());
-		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.preguntas);
+		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
 		
 		// 2. When
 		Examen examen = service.findExamenPorNombreConPreguntas("Matematicas");
@@ -125,7 +132,7 @@ public class ExamenServiceImpTest {
 		
 		// 1. Given = Dado
 		Examen newExamen = Datos.EXAMEN;
-		newExamen.setPreguntas(Datos.preguntas);
+		newExamen.setPreguntas(Datos.PREGUNTAS);
 		
 		/**
 		 * En la respuesta (.then) implementamos una respuesta (Answer) de tipo Examen
@@ -176,10 +183,16 @@ public class ExamenServiceImpTest {
 		verify(preguntaRepository).findPreguntasPorExamenId(isNull());
 	}
 	
+	
+	
+	/******************************************************
+	 * Argument Matcher, para validar el argumento
+	 ******************************************************/
+	
 	@Test
 	void testArgumentMatchers() {
 		when(repository.findAll()).thenReturn(Datos.EXAMENES);
-		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.preguntas);
+		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
 		
 		service.findExamenPorNombreConPreguntas("Matematicas");
 		
@@ -189,4 +202,142 @@ public class ExamenServiceImpTest {
 //		verify(preguntaRepository).findPreguntasPorExamenId(eq(5L));
 		
 	}
+	
+	
+	@Test
+	void testArgumentMatchers2() {
+		when(repository.findAll()).thenReturn(Datos.EXAMENES_ID_NEGATIVOS);
+		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
+		
+		service.findExamenPorNombreConPreguntas("Matematicas");
+		
+		verify(repository).findAll();
+		verify(preguntaRepository).findPreguntasPorExamenId(argThat(new MiArgsMatchers()));
+	}
+	
+	@Test
+	void testArgumentMatchers3() {
+		when(repository.findAll()).thenReturn(Datos.EXAMENES_ID_NEGATIVOS);
+		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
+		
+		service.findExamenPorNombreConPreguntas("Matematicas");
+		
+		verify(repository).findAll();
+		verify(preguntaRepository).findPreguntasPorExamenId(argThat((argument)-> argument != null && argument > 0));
+	}
+	
+	
+	public static class MiArgsMatchers implements ArgumentMatcher<Long> {
+		
+		private Long argument;
+		
+		@Override
+		public boolean matches(Long argument) {
+			this.argument = argument;
+			return argument != null && argument > 0;
+		}
+
+		@Override
+		public String toString() {
+			return "Es para un mensaje personalizado de error "
+					+ "que imprime mockito  en caso de que falle el test"
+					+ argument + " debe ser un entero positivo.";
+		}	
+	}
+	
+	/******************************************************/
+	
+	/******************************************************
+	 * Argument Captor, para capturar el argumento
+	 ******************************************************/
+	
+	@Test
+	void testArgumentCaptor() {
+		when(repository.findAll()).thenReturn(Datos.EXAMENES);
+//		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
+		service.findExamenPorNombreConPreguntas("Matematicas");
+		
+		// Con la clase ArgumentCaptor podemos capturar el agumento que esta pasando, de manera especifica.
+//		ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
+		verify(preguntaRepository).findPreguntasPorExamenId(captor.capture());
+		
+		assertEquals(5L, captor.getValue()); 
+	}
+	
+	/******************************************************
+	 * Metodos doThrow, doAnswer
+	 ******************************************************/
+	
+	@Test
+	void testDoThrow() {
+		Examen examen = Datos.EXAMEN;
+		examen.setPreguntas(Datos.PREGUNTAS);
+		
+		/**
+		 * Con la anotacion doThrow() podemos ejecutar un metodo que no retorna nada (void)
+		 * pero debemos tener en cuenta qu el orden cambia, luego de ejecutar el doThrwo
+		 * se ejecuta el metodo when().
+		 */
+		doThrow(IllegalArgumentException.class).when(preguntaRepository).guardarVarias(anyList());
+	
+		assertThrows(IllegalArgumentException.class, () -> {
+			service.guardar(examen);
+		});
+	}
+	
+	@Test
+	void testDoAnswer() {
+		when(repository.findAll()).thenReturn(Datos.EXAMENES);
+//		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
+		doAnswer(invocation -> {
+			Long id = invocation.getArgument(0);
+			return id == 5 ? Datos.PREGUNTAS : Collections.emptyList();
+		}).when(preguntaRepository).findPreguntasPorExamenId(anyLong());
+		
+		Examen examen = service.findExamenPorNombreConPreguntas("Matematicas");
+		
+		assertEquals(5L, examen.getPreguntas().size());
+		assertTrue(examen.getPreguntas().contains("Geometria"));
+		assertEquals(5L, examen.getId());
+		assertEquals("Matematicas", examen.getNombre());
+		
+		verify(preguntaRepository).findPreguntasPorExamenId(anyLong());
+	}
+	
+	
+	
+	@Test
+	void testDoAnswerGuardarExamen() {
+		
+		// 1. Given = Dado
+		Examen newExamen = Datos.EXAMEN;
+		newExamen.setPreguntas(Datos.PREGUNTAS);
+		
+		doAnswer(new Answer<Examen>() {
+			
+			// Iniciara apartir de 8 ya que hay examenes creados en otras clases.
+			Long secuencia = 8L;
+			
+			@Override
+			public Examen answer(InvocationOnMock invocation) throws Throwable {
+				Examen examen = invocation.getArgument(0);
+				examen.setId(secuencia++);
+				return examen;
+			}
+		}).when(repository).guardar(any(Examen.class));
+		
+		// 2. When = Cuando
+		Examen examen = service.guardar(newExamen);
+		
+		// 3. Then = Entonces
+		assertNotNull(examen.getId());
+		assertEquals(8L, examen.getId());
+		assertEquals("Fisica", examen.getNombre());
+		
+		verify(repository).guardar(any(Examen.class));
+		verify(preguntaRepository).guardarVarias(anyList());
+	}
+	
+	
+	
 }

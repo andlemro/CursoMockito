@@ -19,9 +19,15 @@ public class Datos {
 			new Examen(null, "Historia", null)
 	);
 	
-	public final static List<String> preguntas = Arrays.asList(
+	public final static List<String> PREGUNTAS = Arrays.asList(
 			"Arimetica", "Integrales", "Derivadas", "Trigonometria", "Geometria"
 			);
+	
+	public final static List<Examen> EXAMENES_ID_NEGATIVOS = Arrays.asList(
+			new Examen(-5L, "Matematicas", null), 
+			new Examen(-6L, "Lenguaje", null),
+			new Examen(null, "Historia", null)
+	);
 	
 	public final static Examen EXAMEN = new Examen(8L, "Fisica", null);
 
