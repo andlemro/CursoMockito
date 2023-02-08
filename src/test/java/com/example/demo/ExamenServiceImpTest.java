@@ -22,6 +22,7 @@ import org.lemos.app_mockito.ejemplos.servicios.ExamenServiceImp;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -387,6 +388,45 @@ public class ExamenServiceImpTest {
 		
 		verify(examenRepository).findAll();
 		verify(preguntaRepository).findPreguntasPorExamenId(anyLong());
+	}
+
+	
+	@Test
+	void testOrdenInvocaciones() {
+		when(repository.findAll()).thenReturn(Datos.EXAMENES);
+		
+		service.findExamenPorNombreConPreguntas("Matematicas");
+		service.findExamenPorNombreConPreguntas("Lenguaje");
+		
+		/***
+		 * Mediante la clase y metodo inOrder, podemos validar el orden de ejecucion
+		 * de la prueba.
+		 */
+		InOrder inOrder = inOrder(preguntaRepository);
+		inOrder.verify(preguntaRepository).findPreguntasPorExamenId(5L);
+		inOrder.verify(preguntaRepository).findPreguntasPorExamenId(6L);
+	}
+	
+	
+	@Test
+	void testOrdenInvocaciones2() {
+		when(repository.findAll()).thenReturn(Datos.EXAMENES);
+		
+		service.findExamenPorNombreConPreguntas("Matematicas");
+		service.findExamenPorNombreConPreguntas("Lenguaje");
+		
+		/***
+		 * Mediante la clase y metodo inOrder, podemos validar el orden de ejecucion
+		 * de la prueba.
+		 */
+		InOrder inOrder = inOrder(repository, preguntaRepository);
+		// Estas dos lineas corresponde al llamado de Matematicas.
+		inOrder.verify(repository).findAll();
+		inOrder.verify(preguntaRepository).findPreguntasPorExamenId(5L);
+		
+		// Estas dos lineas corresponde al llamado de Lenguaje.
+		inOrder.verify(repository).findAll();
+		inOrder.verify(preguntaRepository).findPreguntasPorExamenId(6L);
 	}
 	
 }
