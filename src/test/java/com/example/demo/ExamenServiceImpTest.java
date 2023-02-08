@@ -13,7 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lemos.app_mockito.ejemplos.modelos.Examen;
 import org.lemos.app_mockito.ejemplos.repositories.ExamenRepository;
+import org.lemos.app_mockito.ejemplos.repositories.ExamenRepositoryImpl;
 import org.lemos.app_mockito.ejemplos.repositories.PreguntaRepository;
+import org.lemos.app_mockito.ejemplos.repositories.PreguntasRepositoryImpl;
 import org.lemos.app_mockito.ejemplos.servicios.Datos;
 import org.lemos.app_mockito.ejemplos.servicios.ExamenService;
 import org.lemos.app_mockito.ejemplos.servicios.ExamenServiceImp;
@@ -35,10 +37,10 @@ import static org.mockito.Mockito.*;
 public class ExamenServiceImpTest {
 	
 	@Mock
-	private ExamenRepository repository;
+	private ExamenRepositoryImpl repository;
 	
 	@Mock
-	private PreguntaRepository preguntaRepository;
+	private PreguntasRepositoryImpl preguntaRepository;
 	
 	@InjectMocks
 	private ExamenServiceImp service;
@@ -53,8 +55,8 @@ public class ExamenServiceImpTest {
 		
 		
 		// Se definen los mock para simular las instancias.
-//		repository = mock(ExamenRepository.class);
-//		preguntaRepository = mock(PreguntaRepository.class);
+//		repository = mock(PreguntasRepositoryImpl.class);
+//		preguntaRepository = mock(PreguntasRepositoryImpl.class);
 //		service = new ExamenServiceImp(repository, preguntaRepository);
 	}
 	
@@ -338,6 +340,53 @@ public class ExamenServiceImpTest {
 		verify(preguntaRepository).guardarVarias(anyList());
 	}
 	
+	/******************************************************
+	 * DoCallRealMethod, llamada real al metodo
+	 ******************************************************/
+	@Test
+	void testDoCallRealMethod() {
+		when(repository.findAll()).thenReturn(Datos.EXAMENES);
+//		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(Datos.PREGUNTAS);
+		
+		doCallRealMethod().when(preguntaRepository).findPreguntasPorExamenId(anyLong());
+		
+		Examen examen = service.findExamenPorNombreConPreguntas("Matematicas");
+		assertEquals(5L, examen.getId());
+		assertEquals("Matematicas", examen.getNombre());
+	}
 	
+	/******************************************************
+	 * Espias, Spy
+	 ******************************************************/
+	@Test
+	void testSpy() {
+		/**
+		 * Para los espias, es necesario utilizar la clase con implementacion,
+		 * ya que si utilizamos la interfaz que utiliza metodos astractos nos 
+		 * arrojara un error ya que la clase no tiene una implementacion.
+		 */
+		ExamenRepository examenRepository = spy(ExamenRepositoryImpl.class);
+		PreguntaRepository preguntaRepository = spy(PreguntasRepositoryImpl.class);
+		ExamenService examenService = new ExamenServiceImp(examenRepository, preguntaRepository);
+		
+		List<String> preguntas = Arrays.asList("Aritmetica");
+		
+		/***
+		 * Al utilizar los espias y al tratar de simular una prueba, se recomienda utilizar
+		 * los doXXX ya que con el metodo when se presenta un bug.
+		 */
+//		when(preguntaRepository.findPreguntasPorExamenId(anyLong())).thenReturn(preguntas);
+		doReturn(preguntas).when(preguntaRepository).findPreguntasPorExamenId(anyLong());
+
+		Examen examen = examenService.findExamenPorNombreConPreguntas("Matematicas");
+
+		assertEquals(5, examen.getId());
+		assertEquals("Matematicas", examen.getNombre());
+		assertEquals(1, examen.getPreguntas().size());
+		assertTrue(examen.getPreguntas().contains("Aritmetica"));
+		
+		verify(examenRepository).findAll();
+		verify(preguntaRepository).findPreguntasPorExamenId(anyLong());
+	}
 	
 }
